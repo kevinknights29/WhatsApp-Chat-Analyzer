@@ -80,6 +80,7 @@ def analyze(upload_filename: str):
     db = etl.etl_pipeline(os.path.join(app.config["UPLOAD_FOLDER"], upload_filename))
 
     query = ""
+    keyword = ""
     page = request.args.get("page", 1, type=int)
 
     if request.method == "POST":
@@ -123,6 +124,7 @@ def analyze(upload_filename: str):
         results=results,
         total_results=total_results,
         query=query,
+        keyword=keyword,
         page=page,
         top_senders=top_senders,
     )

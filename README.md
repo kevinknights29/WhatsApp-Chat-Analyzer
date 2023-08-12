@@ -10,7 +10,11 @@ This projects build an application capable of analyzing a Chat Export from Whats
 
 ### Analyze View
 
-![image](https://github.com/kevinknights29/WhatsApp-Chat-Analyzer/assets/74464814/be352373-e09b-459b-9287-4fe3f25e7b13)
+![image](https://github.com/kevinknights29/WhatsApp-Chat-Analyzer/assets/74464814/87a6c76c-d926-453c-bb4a-3b9c56634324)
+
+#### Recently added
+
+I recently added the Hall of Fame feature which allows users to see who has the most messages with a given keyword.
 
 ## Usage
 

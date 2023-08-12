@@ -1,2 +1,6 @@
 bandit # to leverage vscode bandit extension
+duckdb
 flask
+pandas
+polars
+pyarrow

@@ -20,6 +20,79 @@
                     <h2>Analysis of: {{ uploaded_filename }}</h2>
                     <p>This section will be expanded to display various insights from the uploaded chat.</p>
                     <!-- Further insights and visualizations will go here -->
+
+                    <!-- Hall of Fame -->
+                    <section class="hall-of-fame my-5">
+                        <h3>Hall of Fame</h3>
+                        <ul class="list-group">
+                            {% for sender, count in top_senders %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <img src="https://www.gravatar.com/avatar/{{ sender|e|lower|hash('md5') }}?d=identicon&s=40" alt="{{ sender }}" class="rounded-circle mr-2">
+                                    {{ sender }}
+                                </span>
+                                <span class="badge badge-primary badge-pill">{{ count }} messages</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </section>
+
+                    <!-- Search Form -->
+                    <form action="{{ url_for('analyze', upload_filename=uploaded_filename) }}" method="POST" class="mb-3">
+                        <div class="row">
+                            <div class="col-md-7">
+                                <input type="text" name="keyword" class="form-control" placeholder="Search for a word..." value="{{ request.args.get('keyword', '') }}">
+                            </div>
+                            <div class="col-md-3 d-flex align-items-center">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="strict_search" value="true" id="strict_search">
+                                    <label class="form-check-label" for="strict_search">Exact Match</label>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary btn-block">Search</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Search Results -->
+                    <p>{{ total_results }} results found for "{{ keyword }}".</p>
+
+                    <!-- Displaying the results as a table -->
+                    <table class="table table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>Sender</th>
+                                <th>Message</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in results %}
+                                <tr>
+                                    <td>{{ row[1] }}</td>
+                                    <td>{{ row[2] }}</td>
+                                    <td>{{ row[0] }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <!-- Pagination controls -->
+                    <nav aria-label="Search results navigation" class="my-4">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('analyze', upload_filename=uploaded_filename, query=query, page=page-1) }}" tabindex="-1">Previous</a>
+                            </li>
+                            <!-- You can add more page numbers if needed -->
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('analyze', upload_filename=uploaded_filename, query=query, page=page) }}">{{ page }}</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('analyze', upload_filename=uploaded_filename, query=query, page=page+1) }}">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
                 </section>
             </div>
         </div>

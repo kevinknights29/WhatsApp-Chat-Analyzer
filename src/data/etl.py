@@ -1,18 +1,20 @@
 from __future__ import annotations
 
+import re
+
 import duckdb
+import pandas as pd
 import polars as pl
 
 
 def extract(txt_file_path: str) -> pl.DataFrame:
-    df = pl.read_csv(
-        txt_file_path,
-        separator="\t",
-        has_header=False,
-        use_pyarrow=True,
-        ignore_errors=True,
-    )
-    return df
+    pattern = r"\[(.*?)\] (.*?): (.*)"
+    with open(txt_file_path) as file:
+        text = file.read()
+    matches = re.findall(pattern, text)
+    columns = ["Date", "Sender", "Message"]
+    df = pd.DataFrame(matches, columns=columns)
+    return pl.DataFrame(df)
 
 
 def transform(df: pl.DataFrame, output_file_path: str) -> str:
@@ -22,13 +24,13 @@ def transform(df: pl.DataFrame, output_file_path: str) -> str:
 
 def load(output_file_path: str) -> duckdb.DuckDBPyConnection:
     db = duckdb.connect(":memory:")
-    create_view_query = """
+    create_view_query = f"""
         --sql
         CREATE VIEW chat_history AS
         SELECT *
-        FROM parquet_scan(?);
+        FROM parquet_scan('{output_file_path}');
     """
-    db.execute(create_view_query, (output_file_path,))
+    db.execute(create_view_query)
     return db
 
 

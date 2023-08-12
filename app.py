@@ -11,6 +11,7 @@ from flask import request
 from flask import url_for
 from werkzeug.utils import secure_filename
 
+from src.data import etl
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
 ALLOWED_EXTENSIONS = {"zip", "txt"}
@@ -60,4 +61,10 @@ def index():
 
 @app.route("/analyze/<upload_filename>")
 def analyze(upload_filename: str):
-    return render_template("analyze.html", uploaded_filename=upload_filename)
+    db = etl.etl_pipeline(os.path.join(app.config["UPLOAD_FOLDER"], upload_filename))
+    results = db.sql("SELECT * FROM chat_history LIMIT 10").fetchall()
+    return render_template(
+        "analyze.html",
+        uploaded_filename=upload_filename,
+        results=results,
+    )

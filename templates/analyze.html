@@ -20,6 +20,25 @@
                     <h2>Analysis of: {{ uploaded_filename }}</h2>
                     <p>This section will be expanded to display various insights from the uploaded chat.</p>
                     <!-- Further insights and visualizations will go here -->
+                    <!-- Displaying the results as a table -->
+                    <table class="table table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>Sender</th>
+                                <th>Message</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in results %}
+                                <tr>
+                                    <td>{{ row[1] }}</td>
+                                    <td>{{ row[2] }}</td>
+                                    <td>{{ row[0] }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </section>
             </div>
         </div>

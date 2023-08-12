@@ -21,6 +21,22 @@
                     <p>This section will be expanded to display various insights from the uploaded chat.</p>
                     <!-- Further insights and visualizations will go here -->
 
+                    <!-- Hall of Fame -->
+                    <section class="hall-of-fame my-5">
+                        <h3>Hall of Fame</h3>
+                        <ul class="list-group">
+                            {% for sender, count in top_senders %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <img src="https://www.gravatar.com/avatar/{{ sender|e|lower|hash('md5') }}?d=identicon&s=40" alt="{{ sender }}" class="rounded-circle mr-2">
+                                    {{ sender }}
+                                </span>
+                                <span class="badge badge-primary badge-pill">{{ count }} messages</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </section>
+
                     <!-- Search Form -->
                     <form action="{{ url_for('analyze', upload_filename=uploaded_filename) }}" method="GET" class="mb-3">
                         <div class="input-group">

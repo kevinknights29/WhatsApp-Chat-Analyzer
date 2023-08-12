@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 import zipfile
 
@@ -9,6 +10,9 @@ from flask import redirect
 from flask import render_template
 from flask import request
 from flask import url_for
+from jinja2 import Environment
+from jinja2 import FileSystemLoader
+from jinja2 import select_autoescape
 from werkzeug.utils import secure_filename
 
 from src.data import etl
@@ -35,6 +39,18 @@ def zip_to_txt(zip_file_path: str, txt_filename="chat.txt") -> str:
                     chat_file.write("\n")
     os.remove(zip_file_path)
     return txt_filename
+
+
+def md5_filter(s, _=None):
+    return hashlib.md5(s.encode("utf-8")).hexdigest()
+
+
+env = Environment(
+    loader=FileSystemLoader(searchpath="templates"),
+    autoescape=select_autoescape(["html", "xml"]),
+)
+env.filters["hash"] = md5_filter
+app.jinja_env.filters["hash"] = md5_filter
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -80,8 +96,20 @@ def analyze(upload_filename: str):
                          WHERE LOWER(message) LIKE '%{query.lower()}%'
                          LIMIT 20 OFFSET {(page - 1) * 20}""",
         ).fetchall()
+        top_senders = db.sql(
+            f"""
+                        SELECT sender, COUNT(*) as count
+                        FROM chat_history
+                        WHERE LOWER(message) LIKE '%{query.lower()}%'
+                        GROUP BY sender
+                        ORDER BY count DESC
+                        LIMIT 3""",
+        ).fetchall()
     else:
         results = db.sql("SELECT * FROM chat_history LIMIT 10").fetchall()
+        top_senders = db.sql(
+            "SELECT sender, COUNT(*) as count FROM chat_history GROUP BY sender ORDER BY count DESC LIMIT 3",
+        ).fetchall()
         total_results = 10
 
     return render_template(
@@ -91,4 +119,5 @@ def analyze(upload_filename: str):
         total_results=total_results,
         query=query,
         page=page,
+        top_senders=top_senders,
     )

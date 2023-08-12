@@ -75,32 +75,37 @@ def index():
     return render_template("index.html")
 
 
-@app.route("/analyze/<upload_filename>", methods=["GET"])
+@app.route("/analyze/<upload_filename>", methods=["GET", "POST"])
 def analyze(upload_filename: str):
     db = etl.etl_pipeline(os.path.join(app.config["UPLOAD_FOLDER"], upload_filename))
 
-    query = request.args.get("query", "").strip()
+    query = ""
     page = request.args.get("page", 1, type=int)
 
-    if query:
+    if request.method == "POST":
+        keyword = request.form.get("keyword", "").strip()
+        strict_search = request.form.get("strict_search") == "true"
+
+        if strict_search:
+            query = f"SELECT * FROM chat_history WHERE message = '{keyword}'"
+        else:
+            query = f"SELECT * FROM chat_history WHERE message LIKE '%{keyword}%'"
+
         total_results = db.sql(
             f"""
                                SELECT COUNT(*)
-                               FROM chat_history
-                               WHERE LOWER(message) LIKE '%{query.lower()}%'""",
+                               FROM ({query}) AS foo""",
         ).fetchone()[0]
         results = db.sql(
             f"""
                          SELECT *
-                         FROM chat_history
-                         WHERE LOWER(message) LIKE '%{query.lower()}%'
+                         FROM ({query}) AS foo
                          LIMIT 20 OFFSET {(page - 1) * 20}""",
         ).fetchall()
         top_senders = db.sql(
             f"""
                         SELECT sender, COUNT(*) as count
-                        FROM chat_history
-                        WHERE LOWER(message) LIKE '%{query.lower()}%'
+                        FROM ({query}) AS foo
                         GROUP BY sender
                         ORDER BY count DESC
                         LIMIT 3""",

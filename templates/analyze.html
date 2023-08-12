@@ -38,17 +38,25 @@
                     </section>
 
                     <!-- Search Form -->
-                    <form action="{{ url_for('analyze', upload_filename=uploaded_filename) }}" method="GET" class="mb-3">
-                        <div class="input-group">
-                            <input type="text" name="query" class="form-control" placeholder="Search for a word..." value="{{ request.args.get('query', '') }}">
-                            <div class="input-group-append">
-                                <button type="submit" class="btn btn-primary">Search</button>
+                    <form action="{{ url_for('analyze', upload_filename=uploaded_filename) }}" method="POST" class="mb-3">
+                        <div class="row">
+                            <div class="col-md-7">
+                                <input type="text" name="keyword" class="form-control" placeholder="Search for a word..." value="{{ request.args.get('keyword', '') }}">
+                            </div>
+                            <div class="col-md-3 d-flex align-items-center">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="strict_search" value="true" id="strict_search">
+                                    <label class="form-check-label" for="strict_search">Exact Match</label>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary btn-block">Search</button>
                             </div>
                         </div>
                     </form>
 
                     <!-- Search Results -->
-                    <p>{{ total_results }} results found for "{{ query }}".</p>
+                    <p>{{ total_results }} results found for "{{ keyword }}".</p>
 
                     <!-- Displaying the results as a table -->
                     <table class="table table-bordered table-hover">

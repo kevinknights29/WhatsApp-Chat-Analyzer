@@ -20,6 +20,20 @@
                     <h2>Analysis of: {{ uploaded_filename }}</h2>
                     <p>This section will be expanded to display various insights from the uploaded chat.</p>
                     <!-- Further insights and visualizations will go here -->
+
+                    <!-- Search Form -->
+                    <form action="{{ url_for('analyze', upload_filename=uploaded_filename) }}" method="GET" class="mb-3">
+                        <div class="input-group">
+                            <input type="text" name="query" class="form-control" placeholder="Search for a word..." value="{{ request.args.get('query', '') }}">
+                            <div class="input-group-append">
+                                <button type="submit" class="btn btn-primary">Search</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Search Results -->
+                    <p>{{ total_results }} results found for "{{ query }}".</p>
+
                     <!-- Displaying the results as a table -->
                     <table class="table table-bordered table-hover">
                         <thead>
@@ -39,6 +53,22 @@
                             {% endfor %}
                         </tbody>
                     </table>
+
+                    <!-- Pagination controls -->
+                    <nav aria-label="Search results navigation" class="my-4">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('analyze', upload_filename=uploaded_filename, query=query, page=page-1) }}" tabindex="-1">Previous</a>
+                            </li>
+                            <!-- You can add more page numbers if needed -->
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('analyze', upload_filename=uploaded_filename, query=query, page=page) }}">{{ page }}</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('analyze', upload_filename=uploaded_filename, query=query, page=page+1) }}">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
                 </section>
             </div>
         </div>

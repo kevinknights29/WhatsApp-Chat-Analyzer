@@ -59,12 +59,36 @@ def index():
     return render_template("index.html")
 
 
-@app.route("/analyze/<upload_filename>")
+@app.route("/analyze/<upload_filename>", methods=["GET"])
 def analyze(upload_filename: str):
     db = etl.etl_pipeline(os.path.join(app.config["UPLOAD_FOLDER"], upload_filename))
-    results = db.sql("SELECT * FROM chat_history LIMIT 10").fetchall()
+
+    query = request.args.get("query", "").strip()
+    page = request.args.get("page", 1, type=int)
+
+    if query:
+        total_results = db.sql(
+            f"""
+                               SELECT COUNT(*)
+                               FROM chat_history
+                               WHERE LOWER(message) LIKE '%{query.lower()}%'""",
+        ).fetchone()[0]
+        results = db.sql(
+            f"""
+                         SELECT *
+                         FROM chat_history
+                         WHERE LOWER(message) LIKE '%{query.lower()}%'
+                         LIMIT 20 OFFSET {(page - 1) * 20}""",
+        ).fetchall()
+    else:
+        results = db.sql("SELECT * FROM chat_history LIMIT 10").fetchall()
+        total_results = 10
+
     return render_template(
         "analyze.html",
         uploaded_filename=upload_filename,
         results=results,
+        total_results=total_results,
+        query=query,
+        page=page,
     )

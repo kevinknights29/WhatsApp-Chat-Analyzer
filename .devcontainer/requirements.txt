@@ -1,2 +1,0 @@
-bandit # to leverage vscode bandit extension
-flask

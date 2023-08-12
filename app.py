@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from flask import Flask
+from flask import render_template
 
 app = Flask(__name__)
 
 
 @app.route("/")
 def index():
-    return "<h1>WhatsApp Chat Analyzer</h1>"
+    return render_template("index.html")

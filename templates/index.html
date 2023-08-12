@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Chat Analyzer</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <header class="bg-success text-white text-center py-3">
+        <h1>WhatsApp Chat Analyzer</h1>
+    </header>
+    <main class="container my-5">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <section class="mb-5">
+                    <h2>Upload Your Chat</h2>
+                    <form action="/" method="post" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <input type="file" name="chatFile" id="chatFile" class="form-control-file" required>
+                        </div>
+                        <button type="submit" class="btn btn-success">Analyze</button>
+                    </form>
+                </section>
+                {% if chat_analysis %}
+                <section>
+                    <h2>Analysis Results</h2>
+                    <!-- Display analysis results. You can further elaborate on what data you want to show. -->
+                    <p>Total Messages: {{ chat_analysis.total_messages }}</p>
+                    <!-- Add more insights as needed -->
+                </section>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+    <footer class="text-center py-3 bg-success text-white">
+        <p>&copy; 2023 WhatsApp Chat Analyzer. All rights reserved.</p>
+    </footer>
+
+    <!-- Optional Bootstrap JS and its dependencies -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+</html>

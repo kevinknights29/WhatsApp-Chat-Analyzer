@@ -1,3 +1,10 @@
+# Custom:
+## Pre-commit Hooks
+.ruff_cache/
+
+## Uploads Folder
+uploads/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

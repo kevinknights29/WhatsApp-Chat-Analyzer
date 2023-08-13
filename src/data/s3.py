@@ -50,3 +50,11 @@ def get_data_from_s3(key, bucket_name=AWS_S3_BUCKET) -> str:
     except Exception as e:
         print("Something Happened: ", e)
         raise e
+
+
+def file_exists_in_s3(filename, bucket_name=AWS_S3_BUCKET) -> bool:
+    try:
+        s3_client().head_object(Bucket=bucket_name, Key=filename)
+        return True
+    except boto3.exceptions.botocore.client.ClientError:
+        return False

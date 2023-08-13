@@ -58,18 +58,16 @@ def load(output_file_path: str) -> duckdb.DuckDBPyConnection:
 
 def load_from_s3(key: str, bucket: str = s3.AWS_S3_BUCKET) -> duckdb.DuckDBPyConnection:
     db = duckdb.connect(":memory:")
+    duckdb.install_extension(connection=db, extension="httpfs", force_install=True)
+    duckdb.load_extension(connection=db, extension="httpfs")
     parquet_s3_path = f"s3://{bucket}/{key}"
     create_view_query = f"""
-        --sql
-        INSTALL httpfs;
-        --sql
-        LOAD httpfs;
         --sql
         CREATE VIEW chat_history AS
         SELECT *
         FROM parquet_scan('{parquet_s3_path}');
     """
-    db.execute(create_view_query)
+    duckdb.query(connection=db, query=create_view_query)
     return db
 
 

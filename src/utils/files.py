@@ -38,5 +38,5 @@ def unique_filename_generator(
     base, ext = os.path.splitext(secure_name)
     if sha256_hash is None:
         sha256_hash = compute_hash(file)
-    unique_name = f"{base}_{sha256_hash}.{ext}"
+    unique_name = f"{base}_{sha256_hash}{ext}"
     return unique_name

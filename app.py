@@ -4,6 +4,8 @@ import hashlib
 import os
 import zipfile
 
+import boto3
+import dotenv
 from flask import flash
 from flask import Flask
 from flask import redirect
@@ -17,12 +19,25 @@ from werkzeug.utils import secure_filename
 
 from src.data import etl
 
+_ = dotenv.load_dotenv(dotenv.find_dotenv())
+
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
-ALLOWED_EXTENSIONS = {"zip", "txt"}
+ALLOWED_EXTENSIONS = {"txt"}
 
 app = Flask(__name__)
 app.secret_key = os.urandom(16).hex()
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
+AWS_S3_BUCKET = os.environ.get("AWS_S3_BUCKET")
+AWS_S3_LOCATION = os.environ.get("AWS_S3_LOCATION")
+
+s3 = boto3.client(
+    "s3",
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+)
 
 
 def allowed_file(filename: str) -> bool:
@@ -45,6 +60,21 @@ def md5_filter(s, _=None):
     return hashlib.md5(s.encode("utf-8")).hexdigest()
 
 
+def upload_to_s3(file, filename, bucket_name, acl="public-read"):
+    try:
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=filename,
+            Body=file,
+            ContentType=file.content_type,
+            ServerSideEncryption="aws:kms",
+        )
+    except Exception as e:
+        print("Something Happened: ", e)
+        return e
+    return filename
+
+
 env = Environment(
     loader=FileSystemLoader(searchpath="templates"),
     autoescape=select_autoescape(["html", "xml"]),
@@ -64,13 +94,23 @@ def index():
             flash("No selected file")
             return redirect(request.url)
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-            file.save(save_path)
-            if filename.endswith(".zip"):
-                filename = secure_filename(zip_to_txt(save_path))
+            s3_path = upload_to_s3(
+                file,
+                secure_filename(file.filename),
+                AWS_S3_BUCKET,
+            )
+            if not s3_path:
+                flash("Error occurred while uploading to S3.")
+                return redirect(request.url)
+            # WIP
+            # if filename.endswith(".zip"):
+            #     # If your file is a zip, and you still need to convert it to txt,
+            #     # you'll need to handle this part differently as the file is no longer on your server.
+            #     # Consider downloading it from S3, converting it, then re-uploading.
+            #     flash("ZIP file uploads need additional handling.")
+            #     return redirect(request.url)
             return redirect(
-                url_for("analyze", upload_filename=filename, _external=True),
+                url_for("analyze", upload_filename=s3_path, _external=True),
             )
     return render_template("index.html")
 

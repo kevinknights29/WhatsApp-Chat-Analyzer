@@ -13,7 +13,7 @@ from src.utils import config
 def allowed_file(filename: str) -> bool:
     condition = (
         "." in filename
-        and filename.rsplit(".", 1)[1].lower() in config()["ALLOWED_EXTENSIONS"]
+        and filename.rsplit(".", 1)[1].lower() in config.config()["ALLOWED_EXTENSIONS"]
     )
     return condition
 
@@ -22,7 +22,7 @@ def hash_filename(file: FileStorage) -> str:
     sha256 = hashlib.sha256()
     file.seek(0)
     while True:
-        data = file.read(config()["CHUNK_SIZE"])  # read in 64k chunks
+        data = file.read(config.config()["CHUNK_SIZE"])  # read in 64k chunks
         if not data:
             break
         sha256.update(data)

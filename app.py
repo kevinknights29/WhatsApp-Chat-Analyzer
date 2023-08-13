@@ -70,7 +70,7 @@ def index():
 
         s3_filename = s3.upload_to_s3(
             file,
-            files.unique_filename_generator(file.filename),
+            files.unique_filename_generator(file.filename, file),
         )
         if not s3_filename:
             flash("Error occurred while uploading to S3.")

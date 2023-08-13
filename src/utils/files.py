@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import os
-import uuid
 
 from werkzeug import utils
 from werkzeug.datastructures import FileStorage
@@ -18,7 +17,7 @@ def allowed_file(filename: str) -> bool:
     return condition
 
 
-def hash_filename(file: FileStorage) -> str:
+def compute_hash(file: FileStorage) -> str:
     sha256 = hashlib.sha256()
     file.seek(0)
     while True:
@@ -27,11 +26,17 @@ def hash_filename(file: FileStorage) -> str:
             break
         sha256.update(data)
     file.seek(0)
-    return f"{sha256.hexdigest()}.txt"
+    return sha256.hexdigest()
 
 
-def unique_filename_generator(filename: str, file: FileStorage) -> str:
+def unique_filename_generator(
+    filename: str,
+    file: FileStorage,
+    sha256_hash: str = None,
+) -> str:
     secure_name = utils.secure_filename(filename)
-    base, _ = os.path.splitext(secure_name)
-    unique_name = f"{base}_{uuid.uuid4()}_{hash_filename(file)}"
+    base, ext = os.path.splitext(secure_name)
+    if sha256_hash is None:
+        sha256_hash = compute_hash(file)
+    unique_name = f"{base}_{sha256_hash}.{ext}"
     return unique_name

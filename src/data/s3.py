@@ -27,13 +27,19 @@ def s3_client() -> boto3.client:
     return __s3_client
 
 
-def upload_to_s3(file, filename, bucket_name=AWS_S3_BUCKET) -> str:
+def upload_to_s3(content, filename, bucket_name=AWS_S3_BUCKET) -> str:
     try:
-        s3_client().put_object(
+        if isinstance(content, bytes):
+            s3_client().put_object(
+                Bucket=bucket_name,
+                Key=filename,
+                Body=content,
+                ServerSideEncryption="aws:kms",
+            )
+        s3_client().upload_fileobj(
+            Fileobj=content,
             Bucket=bucket_name,
             Key=filename,
-            Body=file,
-            ContentType=file.content_type,
             ServerSideEncryption="aws:kms",
         )
     except Exception as e:

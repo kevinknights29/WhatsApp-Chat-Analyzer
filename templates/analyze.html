@@ -7,6 +7,16 @@
     <title>Analysis Results - WhatsApp Chat Analyzer</title>
     <!-- Bootstrap CSS -->
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .sticky-footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            padding: 10px 0;
+            background-color: #f7f7f7;
+            border-top: 1px solid #e7e7e7;
+        }
+    </style>
 </head>
 
 <body>
@@ -97,9 +107,39 @@
             </div>
         </div>
     </main>
+
     <footer class="text-center py-3 bg-success text-white">
         <p>&copy; 2023 WhatsApp Chat Analyzer. All rights reserved.</p>
     </footer>
+
+    <footer class="sticky-footer bg-light">
+        <div class="container text-center">
+            <button type="button" class="btn btn-info" data-toggle="modal" data-target="#feedbackModal">
+                Give Feedback
+            </button>
+        </div>
+    </footer>
+
+    <!-- Feedback Modal -->
+    <div class="modal fade" id="feedbackModal" tabindex="-1" role="dialog" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="feedbackModalLabel">Give Your Feedback</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <!-- Paste your Google Forms iframe embed code here -->
+              <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSczR1lmXR_uopNBqmxRJEYKlbSoIEKsJobz1tH7MZhDivrElg/viewform?embedded=true" width="100%" height="500" frameborder="0" marginheight="0" marginwidth="0">Loading…</iframe>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+    </div>
 
     <!-- Optional Bootstrap JS and its dependencies -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>

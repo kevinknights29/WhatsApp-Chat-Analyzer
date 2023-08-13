@@ -90,7 +90,7 @@ def index():
 
 @app.route("/analyze/<upload_filename>", methods=["GET", "POST"])
 def analyze(upload_filename: str):
-    db = etl.etl_pipeline(os.path.join(app.config["UPLOAD_FOLDER"], upload_filename))
+    db = etl.etl_pipeline(upload_filename)
 
     query = ""
     keyword = ""

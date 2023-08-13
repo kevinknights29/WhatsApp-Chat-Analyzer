@@ -19,11 +19,10 @@ def extract(txt_file_path: str) -> pl.DataFrame:
     return pl.DataFrame(df)
 
 
-def extract_from_s3(key: str, bucket=s3.AWS_S3_BUCKET) -> pl.DataFrame:
+def extract_from_s3(key: str, bucket: str = s3.AWS_S3_BUCKET) -> pl.DataFrame:
     data = s3.get_data_from_s3(key, bucket_name=bucket)
     if not data:
-        print(f"Failed to fetch data for key: {key} from bucket: {bucket}")
-        return pl.DataFrame()
+        raise ValueError(f"Failed to fetch data for key: {key} from bucket: {bucket}")
     pattern = r"\[(.*?)\] (.*?): (.*)"
     matches = re.findall(pattern, data)
     columns = ["Date", "Sender", "Message"]
@@ -34,6 +33,15 @@ def extract_from_s3(key: str, bucket=s3.AWS_S3_BUCKET) -> pl.DataFrame:
 def transform(df: pl.DataFrame, output_file_path: str) -> str:
     df.write_parquet(output_file_path)
     return output_file_path
+
+
+def transform_to_s3(df: pl.DataFrame, key: str, bucket: str = s3.AWS_S3_BUCKET) -> str:
+    parquet_bytes = df.to_pandas().to_parquet(index=False)
+    try:
+        return s3.upload_to_s3(parquet_bytes, key, bucket_name=bucket)
+    except Exception as e:
+        print("Something Happened: ", e)
+        raise e
 
 
 def load(output_file_path: str) -> duckdb.DuckDBPyConnection:
@@ -48,9 +56,27 @@ def load(output_file_path: str) -> duckdb.DuckDBPyConnection:
     return db
 
 
+def load_from_s3(key: str, bucket: str = s3.AWS_S3_BUCKET) -> duckdb.DuckDBPyConnection:
+    db = duckdb.connect(":memory:")
+    parquet_s3_path = f"s3://{bucket}/{key}"
+    create_view_query = f"""
+        --sql
+        INSTALL httpfs;
+        --sql
+        LOAD httpfs;
+        --sql
+        CREATE VIEW chat_history AS
+        SELECT *
+        FROM parquet_scan('{parquet_s3_path}');
+    """
+    db.execute(create_view_query)
+    return db
+
+
 def etl_pipeline(key: str, bucket=s3.AWS_S3_BUCKET) -> duckdb.DuckDBPyConnection:
-    df = extract_from_s3(key, bucket)
-    output_file_path = key.replace(".txt", ".parquet")
-    output_file_path = transform(df, output_file_path)
-    db = load(output_file_path)
+    parquet_key = key.replace(".txt", ".parquet")
+    if not s3.file_exists_in_s3(parquet_key, bucket_name=bucket):
+        df = extract_from_s3(key, bucket)
+        transform_to_s3(df, parquet_key, bucket)
+    db = load_from_s3(parquet_key, bucket)
     return db

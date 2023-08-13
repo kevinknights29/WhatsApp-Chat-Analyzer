@@ -1,6 +1,6 @@
 bandit # to leverage vscode bandit extension
 boto3
-duckdb
+duckdb --pre
 flask
 pandas
 polars

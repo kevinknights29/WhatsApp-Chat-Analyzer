@@ -1,6 +1,8 @@
 bandit # to leverage vscode bandit extension
+boto3
 duckdb
 flask
 pandas
 polars
 pyarrow
+python-dotenv

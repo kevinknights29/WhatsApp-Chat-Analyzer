@@ -68,13 +68,6 @@ def index():
             flash("Invalid file type")
             return redirect(request.url)
 
-        s3_filename = s3.upload_to_s3(
-            file,
-            files.unique_filename_generator(file.filename, file),
-        )
-        if not s3_filename:
-            flash("Error occurred while uploading to S3.")
-            return redirect(request.url)
         # WIP
         # if filename.endswith(".zip"):
         #     # If your file is a zip, and you still need to convert it to txt,
@@ -82,9 +75,22 @@ def index():
         #     # Consider downloading it from S3, converting it, then re-uploading.
         #     flash("ZIP file uploads need additional handling.")
         #     return redirect(request.url)
-        return redirect(
-            url_for("analyze", upload_filename=s3_filename, _external=True),
-        )
+        file_hash = files.compute_hash(file)
+        filename = files.unique_filename_generator(file.filename, file, file_hash)
+        if not s3.file_exists_in_s3(filename):
+            s3_filename = s3.upload_to_s3(file, filename)
+
+            if not s3_filename:
+                flash("Error occurred while uploading to S3.")
+                return redirect(request.url)
+
+            flash("File uploaded successfully.")
+            return redirect(
+                url_for("analyze", upload_filename=s3_filename, _external=True),
+            )
+
+        flash("File with same content already exists!")
+        return redirect(url_for("analyze", upload_filename=filename, _external=True))
     return render_template("index.html")
 
 

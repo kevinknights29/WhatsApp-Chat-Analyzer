@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import os
+import zipfile
 
 import dotenv
 from flask import flash
@@ -43,6 +45,8 @@ app.jinja_env.filters["hash"] = md5_filter
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    file_hash = ""
+    filename = ""
     if request.method == "POST":
         if "chatFile" not in request.files:
             flash("No file part")
@@ -57,15 +61,25 @@ def index():
             flash("Invalid file type")
             return redirect(request.url)
 
-        # WIP
-        # if filename.endswith(".zip"):
-        #     # If your file is a zip, and you still need to convert it to txt,
-        #     # you'll need to handle this part differently as the file is no longer on your server.
-        #     # Consider downloading it from S3, converting it, then re-uploading.
-        #     flash("ZIP file uploads need additional handling.")
-        #     return redirect(request.url)
-        file_hash = files.compute_hash(file)
-        filename = files.unique_filename_generator(file.filename, file, file_hash)
+        if file.filename.endswith(".txt"):
+            file_hash = files.compute_hash(file)
+            filename = files.unique_filename_generator(file.filename, file, file_hash)
+
+        if file.filename.endswith(".zip"):
+            with zipfile.ZipFile(file) as z:
+                txt_files = [name for name in z.namelist() if name.endswith(".txt")]
+                if not txt_files:
+                    flash("No .txt file found in the ZIP.")
+                    return redirect(request.url)
+
+                filename = txt_files[0]
+                with z.open(filename) as file_in_zip:
+                    file_content = file_in_zip.read()
+                    file = io.BytesIO(file_content)
+
+                file_hash = files.compute_hash(file)
+                filename = files.unique_filename_generator(filename, file, file_hash)
+
         if not s3.file_exists_in_s3(filename):
             s3_filename = s3.upload_to_s3(file, filename)
 

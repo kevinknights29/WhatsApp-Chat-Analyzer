@@ -57,23 +57,39 @@ def load(output_file_path: str) -> duckdb.DuckDBPyConnection:
     return db
 
 
-def load_from_s3(key: str, bucket: str = s3.AWS_S3_BUCKET) -> duckdb.DuckDBPyConnection:
-    db_conn = db.db_init()
+def load_from_s3(
+    key: str,
+    bucket: str = s3.AWS_S3_BUCKET,
+    db_conn=None,
+) -> duckdb.DuckDBPyConnection:
+    if db_conn is None:
+        db_conn = db.db_init()
     parquet_s3_path = f"s3://{bucket}/{key}"
-    create_view_query = f"""
-        --sql
-        CREATE VIEW chat_history AS
-        SELECT *
-        FROM parquet_scan('{parquet_s3_path}');
-    """
-    duckdb.query(connection=db_conn, query=create_view_query)
-    return db_conn
+    view_name = key.replace(".parquet", "")
+    view_exists_query = f"SELECT * FROM pg_views WHERE viewname = '{view_name}'"
+    existing_views = duckdb.query(
+        connection=db_conn,
+        query=view_exists_query,
+    ).fetchall()
+    if len(existing_views) == 0:
+        create_view_query = f"""
+            --sql
+            CREATE VIEW {view_name} AS
+            SELECT *
+            FROM parquet_scan('{parquet_s3_path}');
+        """
+        duckdb.query(connection=db_conn, query=create_view_query)
+    return db_conn, view_name
 
 
-def etl_pipeline(key: str, bucket=s3.AWS_S3_BUCKET) -> duckdb.DuckDBPyConnection:
+def etl_pipeline(
+    key: str,
+    bucket=s3.AWS_S3_BUCKET,
+    db_conn=None,
+) -> duckdb.DuckDBPyConnection:
     parquet_key = key.replace(".txt", ".parquet")
     if not s3.file_exists_in_s3(parquet_key, bucket_name=bucket):
         df = extract_from_s3(key, bucket)
         transform_to_s3(df, parquet_key, bucket)
-    db_conn = load_from_s3(parquet_key, bucket)
-    return db_conn
+    db_conn, view_name = load_from_s3(parquet_key, bucket, db_conn)
+    return db_conn, view_name

@@ -29,4 +29,4 @@ REQUIREMENTS_FILE=$1
 python -m pip install --upgrade pip
 
 # Install the Python packages
-python -m pip install --upgrade -r $REQUIREMENTS_FILE
+python -m pip install -r $REQUIREMENTS_FILE

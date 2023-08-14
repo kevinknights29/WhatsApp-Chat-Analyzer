@@ -6,6 +6,7 @@ import duckdb
 import pandas as pd
 import polars as pl
 
+from src.data import db
 from src.data import s3
 
 
@@ -57,9 +58,7 @@ def load(output_file_path: str) -> duckdb.DuckDBPyConnection:
 
 
 def load_from_s3(key: str, bucket: str = s3.AWS_S3_BUCKET) -> duckdb.DuckDBPyConnection:
-    db = duckdb.connect(":memory:")
-    duckdb.install_extension(connection=db, extension="httpfs", force_install=True)
-    duckdb.load_extension(connection=db, extension="httpfs")
+    db_conn = db.db_init()
     parquet_s3_path = f"s3://{bucket}/{key}"
     create_view_query = f"""
         --sql
@@ -67,8 +66,8 @@ def load_from_s3(key: str, bucket: str = s3.AWS_S3_BUCKET) -> duckdb.DuckDBPyCon
         SELECT *
         FROM parquet_scan('{parquet_s3_path}');
     """
-    duckdb.query(connection=db, query=create_view_query)
-    return db
+    duckdb.query(connection=db_conn, query=create_view_query)
+    return db_conn
 
 
 def etl_pipeline(key: str, bucket=s3.AWS_S3_BUCKET) -> duckdb.DuckDBPyConnection:
@@ -76,5 +75,5 @@ def etl_pipeline(key: str, bucket=s3.AWS_S3_BUCKET) -> duckdb.DuckDBPyConnection
     if not s3.file_exists_in_s3(parquet_key, bucket_name=bucket):
         df = extract_from_s3(key, bucket)
         transform_to_s3(df, parquet_key, bucket)
-    db = load_from_s3(parquet_key, bucket)
-    return db
+    db_conn = load_from_s3(parquet_key, bucket)
+    return db_conn

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import os
-import zipfile
 
 import dotenv
 from flask import flash
@@ -15,29 +14,19 @@ from jinja2 import Environment
 from jinja2 import FileSystemLoader
 from jinja2 import select_autoescape
 
+from src.data import db
 from src.data import etl
 from src.data import s3
 from src.utils import files
 
 _ = dotenv.load_dotenv(dotenv.find_dotenv())
+db_conn = db.db_init()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get(
     "APP_SECRET_KEY",
     os.urandom(16).hex(),
 )
-
-
-def zip_to_txt(zip_file_path: str, txt_filename="chat.txt") -> str:
-    text_file_path = os.path.join(os.path.dirname(zip_file_path), txt_filename)
-    with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
-        with open(text_file_path, "w") as chat_file:
-            for file in zip_ref.namelist():
-                if file.endswith(".txt"):
-                    chat_file.write(zip_ref.read(file).decode("utf-8"))
-                    chat_file.write("\n")
-    os.remove(zip_file_path)
-    return txt_filename
 
 
 def md5_filter(s, _=None):
@@ -96,7 +85,7 @@ def index():
 
 @app.route("/analyze/<upload_filename>", methods=["GET", "POST"])
 def analyze(upload_filename: str):
-    db = etl.etl_pipeline(upload_filename)
+    _, view_name = etl.etl_pipeline(upload_filename, db_conn=db_conn)
 
     query = ""
     keyword = ""
@@ -107,22 +96,22 @@ def analyze(upload_filename: str):
         strict_search = request.form.get("strict_search") == "true"
 
         if strict_search:
-            query = f"SELECT * FROM chat_history WHERE message = '{keyword}'"
+            query = f"SELECT * FROM {view_name} WHERE message = '{keyword}'"
         else:
-            query = f"SELECT * FROM chat_history WHERE message LIKE '%{keyword}%'"
+            query = f"SELECT * FROM {view_name} WHERE message LIKE '%{keyword}%'"
 
-        total_results = db.sql(
+        total_results = db_conn.sql(
             f"""
                                SELECT COUNT(*)
                                FROM ({query}) AS foo""",
         ).fetchone()[0]
-        results = db.sql(
+        results = db_conn.sql(
             f"""
                          SELECT *
                          FROM ({query}) AS foo
                          LIMIT 20 OFFSET {(page - 1) * 20}""",
         ).fetchall()
-        top_senders = db.sql(
+        top_senders = db_conn.sql(
             f"""
                         SELECT sender, COUNT(*) as count
                         FROM ({query}) AS foo
@@ -131,9 +120,9 @@ def analyze(upload_filename: str):
                         LIMIT 3""",
         ).fetchall()
     else:
-        results = db.sql("SELECT * FROM chat_history LIMIT 10").fetchall()
-        top_senders = db.sql(
-            "SELECT sender, COUNT(*) as count FROM chat_history GROUP BY sender ORDER BY count DESC LIMIT 3",
+        results = db_conn.sql(f"SELECT * FROM {view_name} LIMIT 10").fetchall()
+        top_senders = db_conn.sql(
+            f"SELECT sender, COUNT(*) as count FROM {view_name} GROUP BY sender ORDER BY count DESC LIMIT 3",
         ).fetchall()
         total_results = 10
 

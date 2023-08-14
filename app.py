@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import os
-import zipfile
 
+import dotenv
 from flask import flash
 from flask import Flask
 from flask import redirect
@@ -13,32 +13,20 @@ from flask import url_for
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
 from jinja2 import select_autoescape
-from werkzeug.utils import secure_filename
 
+from src.data import db
 from src.data import etl
+from src.data import s3
+from src.utils import files
 
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
-ALLOWED_EXTENSIONS = {"zip", "txt"}
+_ = dotenv.load_dotenv(dotenv.find_dotenv())
+db_conn = db.db_init()
 
 app = Flask(__name__)
-app.secret_key = os.urandom(16).hex()
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-
-
-def allowed_file(filename: str) -> bool:
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-def zip_to_txt(zip_file_path: str, txt_filename="chat.txt") -> str:
-    text_file_path = os.path.join(os.path.dirname(zip_file_path), txt_filename)
-    with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
-        with open(text_file_path, "w") as chat_file:
-            for file in zip_ref.namelist():
-                if file.endswith(".txt"):
-                    chat_file.write(zip_ref.read(file).decode("utf-8"))
-                    chat_file.write("\n")
-    os.remove(zip_file_path)
-    return txt_filename
+app.secret_key = os.environ.get(
+    "APP_SECRET_KEY",
+    os.urandom(16).hex(),
+)
 
 
 def md5_filter(s, _=None):
@@ -59,25 +47,45 @@ def index():
         if "chatFile" not in request.files:
             flash("No file part")
             return redirect(request.url)
+
         file = request.files["chatFile"]
         if file.filename == "":
             flash("No selected file")
             return redirect(request.url)
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-            file.save(save_path)
-            if filename.endswith(".zip"):
-                filename = secure_filename(zip_to_txt(save_path))
+
+        if not files.allowed_file(file.filename):
+            flash("Invalid file type")
+            return redirect(request.url)
+
+        # WIP
+        # if filename.endswith(".zip"):
+        #     # If your file is a zip, and you still need to convert it to txt,
+        #     # you'll need to handle this part differently as the file is no longer on your server.
+        #     # Consider downloading it from S3, converting it, then re-uploading.
+        #     flash("ZIP file uploads need additional handling.")
+        #     return redirect(request.url)
+        file_hash = files.compute_hash(file)
+        filename = files.unique_filename_generator(file.filename, file, file_hash)
+        if not s3.file_exists_in_s3(filename):
+            s3_filename = s3.upload_to_s3(file, filename)
+
+            if not s3_filename:
+                flash("Error occurred while uploading to S3.")
+                return redirect(request.url)
+
+            flash("File uploaded successfully.")
             return redirect(
-                url_for("analyze", upload_filename=filename, _external=True),
+                url_for("analyze", upload_filename=s3_filename, _external=True),
             )
+
+        flash("File with same content already exists!")
+        return redirect(url_for("analyze", upload_filename=filename, _external=True))
     return render_template("index.html")
 
 
 @app.route("/analyze/<upload_filename>", methods=["GET", "POST"])
 def analyze(upload_filename: str):
-    db = etl.etl_pipeline(os.path.join(app.config["UPLOAD_FOLDER"], upload_filename))
+    _, view_name = etl.etl_pipeline(upload_filename, db_conn=db_conn)
 
     query = ""
     keyword = ""
@@ -88,22 +96,22 @@ def analyze(upload_filename: str):
         strict_search = request.form.get("strict_search") == "true"
 
         if strict_search:
-            query = f"SELECT * FROM chat_history WHERE message = '{keyword}'"
+            query = f"SELECT * FROM {view_name} WHERE message = '{keyword}'"
         else:
-            query = f"SELECT * FROM chat_history WHERE message LIKE '%{keyword}%'"
+            query = f"SELECT * FROM {view_name} WHERE message LIKE '%{keyword}%'"
 
-        total_results = db.sql(
+        total_results = db_conn.sql(
             f"""
                                SELECT COUNT(*)
                                FROM ({query}) AS foo""",
         ).fetchone()[0]
-        results = db.sql(
+        results = db_conn.sql(
             f"""
                          SELECT *
                          FROM ({query}) AS foo
                          LIMIT 20 OFFSET {(page - 1) * 20}""",
         ).fetchall()
-        top_senders = db.sql(
+        top_senders = db_conn.sql(
             f"""
                         SELECT sender, COUNT(*) as count
                         FROM ({query}) AS foo
@@ -112,9 +120,9 @@ def analyze(upload_filename: str):
                         LIMIT 3""",
         ).fetchall()
     else:
-        results = db.sql("SELECT * FROM chat_history LIMIT 10").fetchall()
-        top_senders = db.sql(
-            "SELECT sender, COUNT(*) as count FROM chat_history GROUP BY sender ORDER BY count DESC LIMIT 3",
+        results = db_conn.sql(f"SELECT * FROM {view_name} LIMIT 10").fetchall()
+        top_senders = db_conn.sql(
+            f"SELECT sender, COUNT(*) as count FROM {view_name} GROUP BY sender ORDER BY count DESC LIMIT 3",
         ).fetchall()
         total_results = 10
 
@@ -128,3 +136,8 @@ def analyze(upload_filename: str):
         page=page,
         top_senders=top_senders,
     )
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)

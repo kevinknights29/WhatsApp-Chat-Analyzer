@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import zipfile
 
 from werkzeug import utils
 from werkzeug.datastructures import FileStorage
@@ -40,3 +41,15 @@ def unique_filename_generator(
         sha256_hash = compute_hash(file)
     unique_name = f"{base}_{sha256_hash}{ext}"
     return unique_name
+
+
+def zip_to_txt(zip_file_path: str, txt_filename="chat.txt") -> str:
+    text_file_path = os.path.join(os.path.dirname(zip_file_path), txt_filename)
+    with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
+        with open(text_file_path, "w") as chat_file:
+            for file in zip_ref.namelist():
+                if file.endswith(".txt"):
+                    chat_file.write(zip_ref.read(file).decode("utf-8"))
+                    chat_file.write("\n")
+    os.remove(zip_file_path)
+    return txt_filename

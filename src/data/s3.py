@@ -40,7 +40,7 @@ def upload_to_s3(content, filename, bucket_name=AWS_S3_BUCKET) -> str:
             Fileobj=content,
             Bucket=bucket_name,
             Key=filename,
-            ServerSideEncryption="aws:kms",
+            ExtraArgs={"ServerSideEncryption": "aws:kms"},
         )
     except Exception as e:
         print("Something Happened: ", e)

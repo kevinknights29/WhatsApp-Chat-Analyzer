@@ -1,7 +1,8 @@
+boto3
 duckdb==0.8.0
 flask
 pandas
 polars
 pyarrow
-gunicorn
 python-dotenv
+gunicorn

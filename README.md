@@ -30,7 +30,11 @@ This projects build an application capable of analyzing a Chat Export from Whats
 
 ![image](https://github.com/kevinknights29/WhatsApp-Chat-Analyzer/assets/74464814/0d3782e0-fdcf-45ce-a508-a67a8722601a)
 
-## Usage
+## Heroku Deployment
+
+![image](https://github.com/kevinknights29/WhatsApp-Chat-Analyzer/assets/74464814/66b59797-7bb4-4eec-be63-c865fd6da883)
+
+## Local Usage
 
 Open as a devcontainer with Visual Studio Code.
 
